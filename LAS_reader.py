@@ -13,8 +13,26 @@ df = pd.read_csv('./LAS/XPT_HRLA_TLD_MCFL_037LTP.las', delim_whitespace=True,
                  header=None, skiprows=67, usecols=[0,3,11,16], 
                  names=['Time', 'Depth', 'ETIM', 'QCP'])
 
-lim1 = [500, 5400]
-lim2 = [750, 5600]
+df['Der'] = df['QCP'].diff()/df['ETIM'].diff()
+df['Der'].fillna(0, inplace=True)
+# df['Der'] = df['Der']*10
+df['Der2'] = df['Der'].diff()/df['ETIM'].diff()
+df['Der2'].fillna(0, inplace=True)
+df['Flag'] = df['Der'].apply(lambda x: 0 if abs(x)<5 else 1)
+
+df['Cons'] = df.Flag.groupby((df.Flag != df.Flag.shift()).cumsum()).transform('size')
+df.Cons.loc[df['Cons']<30]=None
+df.Cons.fillna(method='backfill', inplace=True)
+df['#']=df.Cons.factorize()[0]+1
+
+mud_before = df[df['#']==df['#'].min()]['QCP'].mean()
+mud_after = df[df['#']==df['#'].max()]['QCP'].mean()
+
+lim1 = [df[df['#']==df['#'].max()-1].ETIM.min()-20, df[df['#']==df['#'].max()-1].QCP.min()]
+lim2 = [df[df['#']==df['#'].max()-1].ETIM.max()+20, df[df['#']==df['#'].max()-1].QCP.max()]
+
+# print(lim1)
+# print(lim2)
 
 lim3 = [700, 5501.6]
 lim4 = [740, 5501.7]
@@ -83,4 +101,4 @@ fig.tight_layout()
 
 plt.show()
 
-print(df.head())
+# print(df.head())
